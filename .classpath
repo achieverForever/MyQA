@@ -2,5 +2,6 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="E:/My University/Studies/NLP/BigHW/libs/ltp/ltp4j-master/build_jar/jar/ltp4j.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

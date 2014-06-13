@@ -5,11 +5,35 @@ package content;
  */
 public class Query {
 	
-	private AnalyzedQuestion mAnalyzedQuestion;	/* 分析处理后的问题 */
+	private AnalyzedQuestion analyzedQuestion;	/* 分析处理后的问题 */
 	
-	private String mQueryString;				/* 提交到搜索引擎的查询串 */
+	private String queryString;					/* 提交到搜索引擎的查询串 */
 	
-	private float mScore;						/* 本查询的分值，为Answer Selection模块提供参考 */
+	private float score;						/* 本查询的分值，为Answer Selection模块提供参考 */
 												/* 查询串的独特性越强，分值越高 */
 	
+	public Query(AnalyzedQuestion analyzedQuestion, String queryString,
+			float score) {
+		this.analyzedQuestion = analyzedQuestion;
+		this.queryString = queryString;
+		this.score = score;
+	}
+
+	public AnalyzedQuestion getAnalyzedQuestion() {
+		return analyzedQuestion;
+	}
+
+	public String getQueryString() {
+		return queryString;
+	}
+
+	public float getScore() {
+		return score;
+	}
+
+	@Override
+	public String toString() {
+		return "Query [ queryString="
+				+ queryString + ", score=" + score + "]";
+	}
 }
