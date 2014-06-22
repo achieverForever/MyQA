@@ -1,73 +1,58 @@
 package questionanalysis;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import questionanalysis.KeywordExtractor.KeyWord;
+import ruc.irm.similarity.word.cilin.CilinDb;
+import ruc.irm.similarity.word.hownet2.concept.XiaConceptParser;
 
 public class SynonymExpander {
 	
-	private static HashMap<String, String> sSynonymMap;
+	private static final double HIGH_SIMILARITY = 0.9;
+	private static final double LOW_SIMILARITY = 0.7;
 	
 	public static boolean initialize() {
-		sSynonymMap = new HashMap<String, String>();
-		if (!loadSynonyms("data/models/synonyms.txt")) 
-			return false;
-		else 
-			return true;
+		CilinDb.getInstance();
+		XiaConceptParser.getInstance();
+		return true;
 	}
 	
 	/*
 	 * 对传入的关键词进行同义扩展
 	 * 
 	 * @param keywords 传入的关键词
-	 * @return expandedKeywords 表示扩展后的关键词，对于存在扩展的
-	 * 关键词，返回的HashMap中将有值；否则没有值。
+	 * @return expandedKeywords 表示同义扩展的关键词
 	 */
-	public static HashMap<KeyWord, KeyWord> expandKeyword(List<KeyWord> keywords) {
-		HashMap<KeyWord, KeyWord> expandedKeywords = new HashMap<KeyWord, KeyWord>();
-		for (KeyWord kw : keywords) { 
-			if (sSynonymMap.get(kw.keyword) != null) {
-				expandedKeywords.put(kw, new KeyWord(sSynonymMap.get(kw.keyword),
-						KeywordExtractor.KEYWORD_WEIGHT_LOW));
+	public static List<KeyWord> expandKeyword(List<KeyWord> keywords) {
+		List<KeyWord> expandedKeywords = new ArrayList<KeyWord>();
+		CilinDb db =  CilinDb.getInstance();
+		XiaConceptParser wordSim = XiaConceptParser.getInstance();
+		for (KeyWord kw : keywords) {
+			if (kw.weight == KeywordExtractor.KEYWORD_WEIGHT_HIGH) {
+				continue;	// 不扩展命名实体
+			}
+			Set<String> codeSet = db.getCilinCoding(kw.keyword);
+			if (codeSet != null) {
+				String code = codeSet.iterator().next();
+				Set<String> synonyms =  db.getCilinWords(code);
+				for (String synonym : synonyms) {
+					double similarity = wordSim.getSimilarity(kw.keyword, synonym);
+					if (similarity < LOW_SIMILARITY) {
+						continue;	// 不纳入相似度过低的同义词
+					}
+					KeyWord ekw = new KeyWord(synonym, (similarity >= HIGH_SIMILARITY) ?
+							KeywordExtractor.KEYWORD_WEIGHT_MEDIUM :
+								KeywordExtractor.KEYWORD_WEIGHT_LOW);
+					expandedKeywords.add(ekw);
+					
+					System.out.println(String.format("%s => %s : %f", 
+							kw.keyword, synonym, similarity));
+				}
 			}
 		}
 		return expandedKeywords;
-	}
-	
-	private static boolean loadSynonyms(String synonymfile) {
-		BufferedReader in = null;
-		try {
-			in = new BufferedReader(new FileReader(synonymfile));
-			String line;
-			while ((line = in.readLine()) != null) {
-				String[] tokens = line.split(" ");
-				if (tokens[0].endsWith("=") && tokens.length > 2) {
-					String synonym = tokens[1];	// 选取具有同义关系的词的第一个词作为同义词
-					for (int i = 2; i < tokens.length; i++) {
-						sSynonymMap.put(tokens[i], synonym);
-					}
-					sSynonymMap.put(synonym, tokens[2]);
-				}
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			return false;
-		} catch(IOException e) {
-			e.printStackTrace();
-			return false;
-		} finally {
-			if (in != null) {
-				try {
-					in.close();
-				} catch (IOException e1) {
-				}
-			}
-		}
-		return true;
 	}
 }

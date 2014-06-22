@@ -1,7 +1,6 @@
 package content;
 
 import java.util.List;
-import java.util.Map;
 
 import questionanalysis.KeywordExtractor.KeyWord;
 
@@ -16,18 +15,24 @@ public class AnalyzedQuestion {
 
 	private List<KeyWord> keyWords;						/* 提取出来的关键词 */
 
-	private Map<KeyWord, KeyWord> expandedKeyWords;		/* 可扩展关键词 */
+	private List<KeyWord> expandedKeyWords;		/* 可扩展关键词 */
 		
 	private String question;							/* 原始问题串 */
+	
+	private List<String> words;							/* 分词的结果 */
+	
+	private List<String> tags;							/* 词性 */
 
 	public AnalyzedQuestion(String focus, QuestionType questionType,
-			List<KeyWord> keyWords, Map<KeyWord, KeyWord> expandedKeyWords,
-			String question) {
+			List<KeyWord> keyWords, List<KeyWord> expandedKeyWords,
+			String question, List<String> words, List<String> tags) {
 		this.focus = focus;
 		this.questionType = questionType;
 		this.keyWords = keyWords;
 		this.expandedKeyWords = expandedKeyWords;
 		this.question = question;
+		this.words = words;
+		this.tags = tags;
 	}
 
 	public String getFocus() {
@@ -42,12 +47,20 @@ public class AnalyzedQuestion {
 		return keyWords;
 	}
 
-	public Map<KeyWord, KeyWord> getExpandedKeyWords() {
+	public List<KeyWord> getExpandedKeyWords() {
 		return expandedKeyWords;
 	}
 
 	public String getQuestion() {
 		return question;
+	}
+
+	public List<String> getWords() {
+		return words;
+	}
+	
+	public List<String> getTags() {
+		return tags;
 	}
 
 	@Override
@@ -57,4 +70,5 @@ public class AnalyzedQuestion {
 				+ ", expandedKeyWords=" + expandedKeyWords + ", question="
 				+ question + "]";
 	}
+
 }

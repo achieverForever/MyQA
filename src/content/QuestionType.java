@@ -1,6 +1,5 @@
 package content;
 
-import java.util.Arrays;
 
 /*
  * 表示问题的预期答案类型

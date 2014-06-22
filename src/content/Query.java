@@ -33,7 +33,24 @@ public class Query {
 
 	@Override
 	public String toString() {
-		return "Query [ queryString="
-				+ queryString + ", score=" + score + "]";
+		return "'" + queryString + "'";
 	}
+
+	@Override
+	public int hashCode() {
+		return queryString.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
+		} 
+		if (!(obj instanceof Query)) {
+			return false;
+		}
+		return ((Query)obj).queryString.equals(this.queryString);
+	}
+	
+	
 }

@@ -1,11 +1,13 @@
 package questionanalysis;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import edu.hit.ir.ltp4j.NER;
@@ -35,6 +37,9 @@ public class KeywordExtractor {
 		return result;
 	}
 	
+	/*
+	 * 提取出命名实体
+	 */
 	public static void addNamedEntity(List<String> words, List<String> tags, 
 			List<KeyWord> result) {
 		List<String> nes = new ArrayList<String>();
@@ -63,6 +68,9 @@ public class KeywordExtractor {
 		}
 	}
 	
+	/*
+	 * 去掉与命名实体重合的的动词或名词，因为命名实体的权重更高
+	 */
 	private static void checkIfAlreadyContained(List<KeyWord> result, String word) {
 		for (KeyWord kw : result) {
 			if (word.equals(kw.keyword)) {
@@ -72,27 +80,38 @@ public class KeywordExtractor {
 		}
 	}
 	
+	/*
+	 * 提取出名词和动词
+	 */
 	public static void addNounAndVerb(List<String> words, List<String> tags,
 			List<KeyWord> result) {
 		for (int i = 0; i < tags.size(); i++) {
-			if (tags.get(i).equals("n") || tags.get(i).equals("v")) { // 名词、动词抽取为关键词
+			// 名词、动词抽取为关键词
+			if (tags.get(i).equals("n") || tags.get(i).equals("v")) { 
 				result.add(new KeyWord(words.get(i), KEYWORD_WEIGHT_MEDIUM));	
 			} 
 		}
 	}
 	
+	/*
+	 * 去掉停用词
+	 */
 	public static void dropStopwords(List<KeyWord> result) {
-		for (KeyWord kw : result) {
-			if (STOPWORDS_SET.contains(kw.keyword)) {
-				result.remove(kw);
+		for (Iterator<KeyWord> it = result.iterator(); it.hasNext(); ) {
+			if (STOPWORDS_SET.contains(it.next().keyword)) {
+				it.remove();
 			}
 		}
 	}
 	
+	/*
+	 * 从文件中读入停用词
+	 */
 	private static boolean loadStopwords(String stopwordsfile) {
 		BufferedReader in = null;
 		try {
-			in = new BufferedReader(new FileReader(stopwordsfile));
+			in = new BufferedReader(new InputStreamReader(
+					new FileInputStream(stopwordsfile), "UTF-8"));
 			String line;
 			while ((line = in.readLine()) != null) {
 				STOPWORDS_SET.add(line.trim());
@@ -114,19 +133,26 @@ public class KeywordExtractor {
 		return true;
 	}
 	
+	/*
+	 * 初始化
+	 */
 	public static boolean initialize() {
 		NE_SET = new HashSet<String>();
 		STOPWORDS_SET = new HashSet<String>();
 		// 分别表示人名。地名和机构名
-		String[] nes = { "S-Nh", "S-Ns", "B-Ni" };
-		for (String ne : nes) 
+		String[] nes = { "S-Nh", "S-Ns", "B-Ni", "S-Ni" };
+		for (String ne : nes) {
 			NE_SET.add(ne);
-		if (!loadStopwords("data/models/stopwords/StopWords.txt")) 
+		}
+		if (!loadStopwords("data/models/stopwords/StopWords.txt"))
 			return false;
 		else
 			return true;
 	}
 	
+	/*
+	 * 表示一个关键词的实体类
+	 */
 	public static class KeyWord {
 		public String keyword;
 		public double weight;
@@ -138,7 +164,7 @@ public class KeywordExtractor {
 		
 		@Override
 		public String toString() {
-			return keyword + ":" + weight;
+			return keyword + " " + weight;
 		}
 	}
 	

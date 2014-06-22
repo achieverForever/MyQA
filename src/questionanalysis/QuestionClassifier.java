@@ -25,28 +25,32 @@ public class QuestionClassifier {
 		"Q_OTHERS"
 	};
 	
-	private static Map<String, List<Pattern>> sQuestionTemplates;
+	private static Map<String, List<Pattern>> sQuestionTemplates;	// 问题模板
 	
 	/*
-	 * 对输入的问题串进行分类
+	 * 对输入的问题串根据问题模板进行分类
 	 * 
 	 * @param question 问题串
-	 * @return AnswerType 表示预期答案的类别
+	 * @return AnswerType对象 表示预期答案的类别
 	 */
 	public static QuestionType classify(String question) {
-		System.out.println("正在对问题进行分类: " + question);
 		for (String type : sQuestionTemplates.keySet()) {
 			for (Pattern p : sQuestionTemplates.get(type)) {
 				if (p.matcher(question).find()) {
-					System.out.println("Matched " + type);
+					System.out.println("Question Type: ");
+					System.out.println(type);
 					return new QuestionType(1.0f, type, null);
 				}
 			}
 		}
-		System.out.println("Matched " + "Q_OTHERS");
+		System.out.println("Question Type: ");
+		System.out.println("Q_OTHERS");
 		return new QuestionType(1.0f, "Q_OTHERS", null);
 	}
 	
+	/*
+	 * 初始化，加载问题模板
+	 */
 	public static boolean initialize() {
 		sQuestionTemplates = new HashMap<String, List<Pattern>>();
 		if (!loadQuestionTemplates("data/question_types.txt"))
@@ -55,6 +59,9 @@ public class QuestionClassifier {
 			return true;
 	}
 	
+	/*
+	 * 加载问题模板
+	 */
 	public static boolean loadQuestionTemplates(String filename) {
 		BufferedReader in = null;
 		try {

@@ -9,25 +9,40 @@ public class Result {
 	
 	private String sentence;	/* 答案所在的原句 */
 	
-	private String snippet;	/* 答案所在的文档片段 */
+	private String snippet;		/* 答案所在的文档片段 */
 				
-	private String url;		/* 答案所在网页的URL */
+	private String url;			/* 答案所在网页的URL */
+	
+	private int ranking;		/* 答案所在文档在搜素结果中的排名 */
 	
 	private Query query;		/* 获得此结果的Query */
 	
-	private double score;		/* 结果的分值 */
+	private double score;		/* 此答案的分值 */
 	
 	private double normScore;	/* 规范化的分值 */
+	
 
-	public Result(String answer, String sentence, String snippet, String url,
-			Query query, double score, double normScore) {
-		this.answer = answer;
-		this.sentence = sentence;
+	public Result(String snippet, String url, int ranking, Query query) {
 		this.snippet = snippet;
 		this.url = url;
+		this.ranking = ranking;
 		this.query = query;
-		this.score = score;
-		this.normScore = normScore;
+	}
+	
+	public Result(Result copy) {
+		this.snippet = copy.snippet;
+		this.url = copy.url;
+		this.ranking = copy.ranking;
+		this.query = copy.query;
+	}
+
+	public Result(String answer, String sentence, String snippet, String url,
+			int ranking, Query query, double score, double normScore) {
+		this(snippet, url, ranking, query);
+		this.answer = "";
+		this.sentence = "";
+		this.score = 0.0;
+		this.normScore = 0.0;
 	}
 
 	public String getAnswer() {
@@ -68,5 +83,24 @@ public class Result {
 
 	public void setNormScore(double normScore) {
 		this.normScore = normScore;
+	}
+
+	public int getRanking() {
+		return ranking;
+	}
+
+	public void setRanking(int ranking) {
+		this.ranking = ranking;
+	}
+	
+	public void setSentence(String sentence) {
+		this.sentence = sentence;
+	}
+
+	@Override
+	public String toString() {
+		return "Result { \n\tanswer:" + answer + ", \n\tscore:" + score 
+				+ ", \n\tsentence:" + sentence + ", \n\turl:" + url
+				+ ", \n\tranking:" + ranking + ", \n\tquery:" + query+ "\n}";
 	}
 }
