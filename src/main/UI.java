@@ -23,6 +23,7 @@ import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -38,7 +39,6 @@ import answerextraction.AnswerExtractor;
 import content.AnalyzedQuestion;
 import content.Query;
 import content.Result;
-import javax.swing.JProgressBar;
 
 public class UI extends JFrame{
 
@@ -217,13 +217,17 @@ public class UI extends JFrame{
 				}
 				
 				// Answer Extraction
-				List<Result> answers = AnswerExtractor.extractTopN(res, 5, 0.0);
+				List<Result> answers = AnswerExtractor.extractTopN(res, 5, 0.1);
 				System.out.println("Final Result: ");
-				int i = 1;
-				for (Result r : answers) {
-					System.out.println(r);
-					sb.append(String.format(ANSWER_TEMPLATE, i++, r.getAnswer(), r.getScore(),
-							r.getSentence(), r.getUrl(), r.getUrl()));
+				if (answers.size() == 0) {
+					sb.append("<strong>No result returned.</strong>");
+				} else {
+					int i = 1;
+					for (Result r : answers) {
+						System.out.println(r);
+						sb.append(String.format(ANSWER_TEMPLATE, i++, r.getAnswer(), r.getScore(),
+								r.getSentence(), r.getUrl(), r.getUrl()));
+					}
 				}
 
 				EventQueue.invokeLater(new Runnable() {

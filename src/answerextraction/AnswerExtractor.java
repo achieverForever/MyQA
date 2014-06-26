@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,7 +47,7 @@ public class AnswerExtractor {
 
 		for(int i = 0; i < results.size(); i++) {
 			// 分句
-			List<String> sentences = DocumentProcessor.splitSentence(results.get(i)
+			List<String> sentences = SentenceSplitter.splitSentence(results.get(i)
 					.getSnippet());
 			// 计算每个句子的得分 
 			for (String sent : sentences) {
@@ -66,6 +67,9 @@ public class AnswerExtractor {
 		});
 		int n = scoredSentences.size() < topN ? scoredSentences.size() : topN;
 		for (int j = 0; j < n; j++) {
+			if (scoredSentences.get(j).score < minScore) {
+				continue;
+			}
 			Result old = results.get(scoredSentences.get(j).docId);
 			Result new_ = new Result(old);
 			new_.setSentence(scoredSentences.get(j).sentence);;
@@ -105,46 +109,47 @@ public class AnswerExtractor {
 		}
 		for (KeyWord kw : analyzedQuestion.getKeyWords()) {
 			if (words.contains(kw.keyword)) {
-				score += kw.weight * computeTF(kw.keyword, sentences) 
-						* computeIDF(kw.keyword) * attenuation;
+				score += kw.weight * computeTF(kw.keyword, sentences) * computeIDF(kw.keyword)
+						* attenuation;
 			}
 		}
+		
 		//根据问题类型抽取答案
 		String answer = "";
-		List<String> nes = new ArrayList<String>();
+		
 		if ("Q_PERSON".equals(analyzedQuestion.getQuestionType().getType())) {
 			// 提取出句子中的人名作为问题的答案
-			NER.recognize(words, tags, nes);
-			for (int i = 0; i < nes.size(); i++) {
-				if (nes.get(i).equals("S-Nh")) { 
-					answer = words.get(i);
-					score += 20.0;
-					break;
+			if (words.size() > 0) {
+				List<String> nes = new ArrayList<String>();
+				NER.recognize(words, tags, nes);
+				for (int i = 0; i < nes.size(); i++) {
+					if (nes.get(i).equals("S-Nh")) { 
+						answer = words.get(i);
+						score += 20.0;
+						break;
+					}
 				}
 			}
 		} else if ("Q_LOCATION".equals(analyzedQuestion.getQuestionType().getType())) {
 			// 提取出句子中的地名作为问题的答案
-			StringBuilder sb = new StringBuilder();
-			NER.recognize(words, tags, nes);
-			boolean containsLocation = false;
-			for (int i = 0; i < nes.size(); i++) {
-				if (nes.get(i).matches("Ns")) {
-					containsLocation = true;
-					sb.append(words.get(i));
-				}
-			} 
-			if (containsLocation) {
+			answer = extractLocation(words, tags);
+			if (!answer.equals("")) {
 				score += 20.0;
 			}
-			answer = sb.toString();
 		} else if ("Q_REASON".equals(analyzedQuestion.getQuestionType().getType())) {
 			// 提取出句子中的原因作为答案，整句返回
 		} else if ("Q_TIME".equals(analyzedQuestion.getQuestionType().getType())) {
 			// 提取出句子中的时间作为答案
 			answer = extractTime(words, tags);
+			if (!answer.equals("")) {
+				score += 20.0;
+			}
 		} else if ("Q_NUMBER".equals(analyzedQuestion.getQuestionType().getType())) {
 			// 提取出句子中的数字作为答案
 			answer = extractNumber(words, tags);
+			if (!answer.equals("")) {
+				score += 20.0;
+			}
 		}
 		
 		// 问题类别不明或句中没有想要的命名实体，返回整句作为答案
@@ -187,28 +192,77 @@ public class AnswerExtractor {
 	 * 提取出句子中的时间
 	 */
 	public static String extractTime(List<String> words, List<String> tags) {
+		// 对分词进行调整，以便更精确的提取时间，如"1995年/10月/6日"进一步细分
+		// 为"1995/年/10/月/6/日"
+		List<String> modifiedWords = new ArrayList<String>();
+		List<String> modifiedTags = new ArrayList<String>();
+		StringBuilder sb2 = new StringBuilder();
+		Pattern p = Pattern.compile("[0-9|一|二|三|四|五|六|七|八|九|十]+");
+		for (int i = 0; i < words.size(); i++) {
+			String word = words.get(i);
+			Matcher m = p.matcher(word);
+			int lastEnd = 0;
+			if (m.find()) {
+				do {
+					if (m.start(0) > lastEnd) {
+						sb2.append(word.substring(lastEnd, m.start(0)) + "/");
+					}
+					sb2.append(m.group(0) + "/");
+					lastEnd = m.end(0);
+				} while (m.find());
+				if (lastEnd < word.length()) {
+					sb2.append(word.substring(lastEnd, word.length()) + "/");
+				}
+			} else {
+				sb2.append(word + "/");
+			}
+		}
+		String[] ws = sb2.toString().split("/");
+		for (String w : ws) {
+			if (!w.equals("")) {
+				modifiedWords.add(w);
+			}
+		}
+		Postagger.postag(modifiedWords, modifiedTags);
+/*		for (int i = 0; i < modifiedTags.size(); i++) {
+			System.out.print(modifiedWords.get(i) + "/" + modifiedTags.get(i) + "  ");
+		}
+		System.out.println();*/
+		
 		StringBuilder sb = new StringBuilder();
 		int currLen = -1;
 		int beg = 0, end = 0, start = 0;
 		Set<String> set = new HashSet<String>();
-		set.add("nt");
 		set.add("m");
 		set.add("q");
 		set.add("n");
+		Set<String> set2 = new HashSet<String>();
+		set2.add("年");
+		set2.add("月");
+		set2.add("日");
+		set2.add("号");
+		set2.add("时");
+		set2.add("分");
 		
-		// 尝试提取出最长的词性为m, q, n串
 		while (true) {
-			if (end == tags.size() || (beg = findFirstOf(tags, end, set)) == -1) {
+			if (end == modifiedTags.size() || (beg = findFirstOf(modifiedTags, end, set)) == -1) {
 				break;
 			}
-			end = findFirstNotOf(tags, beg, set);
-			if (currLen < end - beg) {
+			end = findFirstNotOf(modifiedTags, beg, set);
+			boolean next = true;
+			for (int i = beg; i < end; i++) {
+				if (set2.contains(modifiedWords.get(i))) {
+					next = false;	// 跳过不含时间词的串
+				}
+			}
+			if (currLen < end - beg && !next) {
 				currLen = end - beg;
 				start = beg;
 			}
 		}
+		
 		for (int i = start; i < start + currLen; i++) {
-			sb.append(words.get(i));
+			sb.append(modifiedWords.get(i));
 		}
 		return sb.toString();
 	}
@@ -217,7 +271,7 @@ public class AnswerExtractor {
 	 * 提取出句子中的数量信息
 	 */
 	public static String extractNumber(List<String> words, List<String> tags) {
-		// 对分词进行调整，以便更精确的提取出时间，如"1995年/10月/6日"进一步细分
+		// 对分词进行调整，以便更精确的剔除时间，如"1995年/10月/6日"进一步细分
 		// 为"1995/年/10/月/6/日"
 		List<String> modifiedWords = new ArrayList<String>();
 		List<String> modifiedTags = new ArrayList<String>();
@@ -277,7 +331,7 @@ public class AnswerExtractor {
 			boolean next = false;
 			for (int i = beg; i < end; i++) {
 				if (set2.contains(modifiedWords.get(i))) {
-					next = true;
+					next = true;	// 跳过时间串
 				}
 			}
 			if (currLen < end - beg && !next) {
@@ -289,6 +343,26 @@ public class AnswerExtractor {
 			sb.append(modifiedWords.get(i));
 		}
 		return sb.toString();
+	}
+	
+	/*
+	 * 提取出句子中的地点
+	 */
+	public static String extractLocation(List<String> words, List<String> tags) {
+		String res = "";
+		if (words.size() == 0)
+			return res;
+		
+		List<String> nes = new ArrayList<String>();
+		NER.recognize(words, tags, nes);
+		
+		for (int i = 0; i < nes.size(); i++) {
+			if (nes.get(i).matches(".*Ns.*")) {
+				res = words.get(i);
+				break;
+			}
+		} 
+		return res;
 	}
 	
 	/*
@@ -395,12 +469,26 @@ public class AnswerExtractor {
 		if (Postagger.create("data/models/pos.model") < 0) {
 			System.out.println("Failed to initialize PosTagger");
 		}
+		if (NER.create("data/models/ner.model") < 0) {
+			System.out.println("Failed to initialize NERecognizer");
+		}
 
-		String line = "7月23日，北京市五月一号六时，五百八十七员人口：截至2009年底北京市人口总量已经达到1972万";
-		List<String> words = new ArrayList<String>();
-		Segmentor.segment(line, words);
-		List<String> tags = new ArrayList<String>();
-		Postagger.postag(words, tags); 
-		System.out.println(extractTime(words, tags));
+		Scanner sc = new Scanner(System.in);
+		String line = "";
+		while (true) {
+			if ((line = sc.nextLine()).equals("exit")) {
+				break;
+			}
+			List<String> words = new ArrayList<String>();
+			Segmentor.segment(line, words);
+			List<String> tags = new ArrayList<String>();
+			Postagger.postag(words, tags); 
+			for (int i = 0; i < words.size(); i++) {
+				System.out.print(words.get(i) + "/" + tags.get(i) + " ");
+			}
+			System.out.println("\nLoc: " + extractLocation(words, tags));
+			System.out.println("Time: " + extractTime(words, tags));
+			System.out.println("Number: " + extractNumber(words, tags));
+		}
 	}
 }

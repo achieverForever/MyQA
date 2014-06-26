@@ -37,12 +37,14 @@ public class QuestionAnalyzer {
 		System.out.println("");
 		
 		// 命名实体识别
-		List<String> nes = new ArrayList<String>();
-		NER.recognize(words, tags, nes);
-		for (int i = 0; i < nes.size(); i++) {
-			System.out.print(words.get(i) + "/" + nes.get(i) + " ");
+		if (words.size() > 0) {
+			List<String> nes = new ArrayList<String>();
+			NER.recognize(words, tags, nes);
+			for (int i = 0; i < nes.size(); i++) {
+				System.out.print(words.get(i) + "/" + nes.get(i) + " ");
+			}
+			System.out.println("");
 		}
-		System.out.println("");
 		
 		// 提取关键词
 		System.out.println("Extracted Keywords：");

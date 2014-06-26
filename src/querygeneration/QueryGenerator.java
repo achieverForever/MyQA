@@ -47,12 +47,14 @@ public class QueryGenerator {
 		// #1 query, 只包括答案类型和命名实体
 		StringBuilder sb = new StringBuilder();
 		float score = 1.0f;
+		boolean hasNE = false;
 		if (!answerType.equals("")) { 
 			sb.append(answerType + " ");
 			count++;
 		}
 		for (KeyWord kw : analyzedQuestion.getKeyWords()) {
 			if (kw.weight == KeywordExtractor.KEYWORD_WEIGHT_HIGH) {
+				hasNE = true;
 				if (count < MAX_QUERIES) {
 					sb.append(kw.keyword + " ");
 					count++;
@@ -61,7 +63,7 @@ public class QueryGenerator {
 		}
 		if (!sb.toString().trim().equals("")) {
 			q = new Query(analyzedQuestion, sb.toString() + SITE, score);
-			if (!queries.contains(q)) {
+			if (!queries.contains(q) && hasNE) {
 				queries.add(q);
 			}
 		}
@@ -70,6 +72,7 @@ public class QueryGenerator {
 		count = 0;
 		sb.delete(0, sb.length());
 		score = 1.0f;
+		boolean hasNEORVerbNoun = false;
 		if (!answerType.equals("")) {
 			sb.append(answerType + " ");
 			count++;
@@ -77,6 +80,7 @@ public class QueryGenerator {
 		for (KeyWord kw : analyzedQuestion.getKeyWords()) {
 			if (kw.weight == KeywordExtractor.KEYWORD_WEIGHT_HIGH
 					|| kw.weight == KeywordExtractor.KEYWORD_WEIGHT_MEDIUM) {
+				hasNEORVerbNoun = true;
 				if (count < MAX_QUERIES) {
 					sb.append(kw.keyword + " ");
 					count++;
@@ -85,7 +89,7 @@ public class QueryGenerator {
 		}
 		if (!sb.toString().trim().equals("")) {
 			q = new Query(analyzedQuestion, sb.toString() + SITE, score);
-			if (!queries.contains(q)) {
+			if (!queries.contains(q) && hasNEORVerbNoun) {
 				queries.add(q);
 			}
 		}
@@ -94,12 +98,14 @@ public class QueryGenerator {
 		count = 0;
 		sb.delete(0, sb.length());
 		score = 1.0f;
+		boolean hasNEORFocus = false;
 		if (!answerType.equals("")) {
 			sb.append(answerType + " ");
 			count++;
 		}
 		for (KeyWord kw : analyzedQuestion.getKeyWords()) {
 			if (kw.weight == KeywordExtractor.KEYWORD_WEIGHT_HIGH) {
+				hasNEORFocus = true;
 				if (count < MAX_QUERIES - 1) {
 					sb.append(kw.keyword + " ");
 					count++;
@@ -107,11 +113,12 @@ public class QueryGenerator {
 			}
 		}
 		if (!analyzedQuestion.getFocus().trim().equals("")) {
+			hasNEORFocus = true;
 			sb.append(analyzedQuestion.getFocus() + " ");
 		}
 		if (!sb.toString().trim().equals("")) {
 			q = new Query(analyzedQuestion, sb.toString() + SITE, score);
-			if (!queries.contains(q)) {
+			if (!queries.contains(q) && hasNEORFocus) {
 				queries.add(q);
 			}
 		}

@@ -42,6 +42,15 @@ public class KeywordExtractor {
 	 */
 	public static void addNamedEntity(List<String> words, List<String> tags, 
 			List<KeyWord> result) {
+		if (words.size() == 0) 
+			return;
+		
+		for (int i = 0; i < words.size(); i++) {
+			if (tags.get(i).equals("nz")) {
+				result.add(new KeyWord(words.get(i), KEYWORD_WEIGHT_HIGH));
+			}
+		}
+		
 		List<String> nes = new ArrayList<String>();
 		NER.recognize(words, tags, nes);
 		for (int i = 0; i < nes.size(); i++) {

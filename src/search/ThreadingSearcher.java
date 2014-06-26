@@ -54,6 +54,7 @@ public class ThreadingSearcher {
 	private static final String BASE_URL = "https://api.datamarket.azure.com/Bing/SearchWeb/Web";
 	private static final String ACCOUNT_KEY = "1KffzUvuIa+dAoa4p41r3Wx+sXog6Aa83sx86NBX6jM";
 	private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114";
+	private static final int MAX_SEARCH_RESULTS = 5;	// 每次搜索只返回5个结果
 	private static String ACCOUNT_KEY_ENC;
 	
 	private ConcurrentMap<Long, Result> mSharedMap;
@@ -235,7 +236,7 @@ public class ThreadingSearcher {
 		public void run() {
 			System.out.println("Thread #" + Thread.currentThread().getId() + " started");
 			
-			List<String> urls = searchBing(5);
+			List<String> urls = searchBing(MAX_SEARCH_RESULTS);
 			if (urls == null) {
 				return;
 			}
@@ -264,7 +265,7 @@ public class ThreadingSearcher {
 		/*
 		 * 将查询串发往Bing搜索引擎，返回topN个URL
 		 */
-		private synchronized List<String> searchBing(int topN) {
+		private List<String> searchBing(int topN) {
 			List<String> res = null;
 	    	try {
 				HttpGet get = new HttpGet(new URIBuilder(BASE_URL)
@@ -303,7 +304,7 @@ public class ThreadingSearcher {
 		/*
 		 * 从JSONObject中解析出URL
 		 */
-	    private synchronized List<String> fromJson(JSONObject json) {
+	    private List<String> fromJson(JSONObject json) {
 	    	List<String> urls = new ArrayList<String>();
 	    	JSONObject d = (JSONObject) json.get("d");
 	    	JSONArray results = (JSONArray) d.get("results");
@@ -316,7 +317,7 @@ public class ThreadingSearcher {
 	    /*
 	     * 获取urls所指向的网页，并解析出该网页的文本作为文档返回
 	     */
-	    private synchronized List<String> fetchSnippets(List<String> urls) {
+	    private List<String> fetchSnippets(List<String> urls) {
 	    	List<String> res = new ArrayList<String>(urls.size());
 	    	for (int j = 0; j < urls.size(); j++) {
 	    		res.add(null);
@@ -335,12 +336,7 @@ public class ThreadingSearcher {
 						continue;
 					}
 					String content = "";
-	/*				int index = html.indexOf("<h2>目录</h2>");	
-					if (index != -1) {
-						content = html.substring(0, index);
-					} else {
-						content = html;
-					}*/
+					
 					Document doc = Jsoup.parse(html);
 					Elements paras = doc.select("p");
 //					Elements divs = doc.select("div");
